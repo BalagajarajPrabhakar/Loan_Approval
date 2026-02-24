@@ -18,7 +18,7 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-    model = joblib.load("model/loan_model.pkl")
+    model = joblib.load("loan_model.pkl")
     return model
 
 df = load_data()
@@ -182,4 +182,5 @@ elif page == "Prediction":
         if prediction == 1:
             st.success("Loan Approved")
         else:
+
             st.error("Loan Rejected")
