@@ -58,7 +58,6 @@ if page == "Dataset Overview":
     st.subheader("Missing Values")
     st.write(df.isnull().sum())
 
-
 # ===============================
 # PAGE 2 — EDA
 # ===============================
@@ -82,7 +81,6 @@ elif page == "EDA Analysis":
     if st.button("Fill Missing Values"):
         df.fillna(df.mode().iloc[0], inplace=True)
         st.success("Missing values filled using mode")
-
 
 # ===============================
 # PAGE 3 — Visualizations
@@ -109,12 +107,11 @@ elif page == "Visualizations":
     sns.heatmap(numeric_df.corr(), annot=True, cmap="coolwarm", ax=ax)
     st.pyplot(fig)
 
-
 # ===============================
-# PAGE 4 — Prediction
+# PAGE 4 — Prediction (IMPROVED)
 # ===============================
 elif page == "Prediction":
-    st.title("🤖 Loan Approval Prediction")
+    st.title("🤖 Loan Approval Prediction (Advanced AI System)")
 
     Gender = st.selectbox("Gender", ["Male", "Female"])
     Married = st.selectbox("Married", ["Yes", "No"])
@@ -156,12 +153,80 @@ elif page == "Prediction":
         prediction = model.predict(input_data)[0]
         prob = model.predict_proba(input_data)[0][1]
 
+        # ===============================
+        # RESULT
+        # ===============================
         if prediction == 1:
             st.success(f"✅ Loan Approved (Confidence: {prob:.2f})")
         else:
             st.error(f"❌ Loan Rejected (Confidence: {1-prob:.2f})")
 
-        # Download result
+        # ===============================
+        # 🔥 NEW FEATURE 1: RISK SCORE
+        # ===============================
+        risk_score = int((1 - prob) * 100)
+        st.subheader(f"📊 Risk Score: {risk_score}/100")
+
+        # ===============================
+        # 🔥 NEW FEATURE 2: FRAUD DETECTION
+        # ===============================
+        if ApplicantIncome < 2000 and LoanAmount > 500:
+            st.warning("⚠️ Possible Fraud Detected (Low income vs high loan)")
+
+        # ===============================
+        # 🔥 NEW FEATURE 3: EXPLANATION
+        # ===============================
+        st.subheader("🧠 AI Explanation")
+
+        if Credit_History == 1.0:
+            st.write("✔️ Good credit history increases approval chances")
+        else:
+            st.write("❌ Poor credit history reduces approval chances")
+
+        if TotalIncome > 5000:
+            st.write("✔️ High income supports loan approval")
+        else:
+            st.write("❌ Low income reduces approval chances")
+
+        if EMI > (TotalIncome * 0.4):
+            st.write("❌ EMI too high compared to income")
+
+        # ===============================
+        # 🔥 NEW FEATURE 4: SMART SUGGESTION
+        # ===============================
+        st.subheader("💡 Improvement Suggestions")
+
+        if prediction == 0:
+            st.write("- Increase income or add co-applicant")
+            st.write("- Reduce loan amount")
+            st.write("- Improve credit score")
+            st.write("- Choose longer loan term")
+
+        # ===============================
+        # 🔥 NEW FEATURE 5: WHAT-IF ANALYSIS
+        # ===============================
+        st.subheader("🔄 What-if Analysis")
+
+        new_income = st.slider("Try Increasing Income", 0, 20000, int(TotalIncome))
+        new_loan = st.slider("Try Reducing Loan Amount", 0, 1000, int(LoanAmount))
+
+        new_emi = new_loan / Loan_Amount_Term
+
+        temp_data = input_data.copy()
+        temp_data["TotalIncome"] = new_income
+        temp_data["LoanAmount"] = new_loan
+        temp_data["EMI"] = new_emi
+
+        new_pred = model.predict(temp_data)[0]
+
+        if new_pred == 1:
+            st.success("✅ With these changes → Loan may be APPROVED")
+        else:
+            st.error("❌ Still NOT approved")
+
+        # ===============================
+        # DOWNLOAD
+        # ===============================
         input_data["Prediction"] = prediction
         st.download_button(
             "Download Result",
