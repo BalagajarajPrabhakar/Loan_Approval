@@ -203,7 +203,7 @@ elif page == "Prediction":
             st.write("- Choose longer loan term")
 
         # ===============================
-        # 🔥 NEW FEATURE 5: WHAT-IF ANALYSIS
+        # 🔥 FIXED WHAT-IF ANALYSIS
         # ===============================
         st.subheader("🔄 What-if Analysis")
 
@@ -212,11 +212,31 @@ elif page == "Prediction":
 
         new_emi = new_loan / Loan_Amount_Term
 
-        temp_data = input_data.copy()
-        temp_data["TotalIncome"] = new_income
-        temp_data["LoanAmount"] = new_loan
-        temp_data["EMI"] = new_emi
+        # Create fresh input (IMPORTANT)
+        temp_data = pd.DataFrame({
+            "Gender":[Gender],
+            "Married":[Married],
+            "Dependents":[Dependents],
+            "Education":[Education],
+            "Self_Employed":[Self_Employed],
+            "ApplicantIncome":[new_income - CoapplicantIncome],
+            "CoapplicantIncome":[CoapplicantIncome],
+            "LoanAmount":[new_loan],
+            "Loan_Amount_Term":[Loan_Amount_Term],
+            "Credit_History":[Credit_History],
+            "Property_Area":[Property_Area],
+            "TotalIncome":[new_income],
+            "EMI":[new_emi]
+            })
 
+        # Encode AGAIN (VERY IMPORTANT)
+        for col in temp_data.select_dtypes(include="object").columns:
+            temp_data[col] = temp_data[col].astype("category").cat.codes
+
+        # Ensure same column order
+        temp_data = temp_data[input_data.columns]
+
+        # Predict
         new_pred = model.predict(temp_data)[0]
 
         if new_pred == 1:
