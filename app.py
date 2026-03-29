@@ -8,28 +8,20 @@ import seaborn as sns
 st.set_page_config(page_title="Loan Approval ML App", layout="wide")
 
 # ===============================
-# Upload Dataset
+# Load Data & Model
 # ===============================
-st.sidebar.title("Upload Dataset")
-uploaded_file = st.sidebar.file_uploader("Upload CSV File", type=["csv"])
-
 @st.cache_data
-def load_data(file):
-    df = pd.read_csv(file)
-    if "Loan_ID" in df.columns:
-        df = df.drop("Loan_ID", axis=1)
-    return df
-
-# Default fallback
-if uploaded_file:
-    df = load_data(uploaded_file)
-else:
+def load_data():
     df = pd.read_csv("train.csv")
+    df = df.drop("Loan_ID", axis=1)
+    return df
 
 @st.cache_resource
 def load_model():
-    return joblib.load("loan_model.pkl")
+    model = joblib.load("loan_model.pkl")
+    return model
 
+df = load_data()
 model = load_model()
 
 # ===============================
@@ -45,12 +37,8 @@ page = st.sidebar.radio(
 # PAGE 1 — Dataset Overview
 # ===============================
 if page == "Dataset Overview":
-    st.title("📊 Loan Prediction Project")
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Rows", df.shape[0])
-    col2.metric("Columns", df.shape[1])
-    col3.metric("Missing Values", df.isnull().sum().sum())
+    st.title("Loan Prediction Project")
+    st.write("Dataset Shape:", df.shape)
 
     st.subheader("Dataset Preview")
     st.dataframe(df.head())
@@ -63,50 +51,84 @@ if page == "Dataset Overview":
 # PAGE 2 — EDA
 # ===============================
 elif page == "EDA Analysis":
-    st.title("📈 Exploratory Data Analysis")
+    st.title("Exploratory Data Analysis")
 
-    st.subheader("Data Types")
+    st.subheader("Column Data Types")
     st.write(df.dtypes)
 
     st.subheader("Statistical Summary")
     st.write(df.describe())
 
-    st.subheader("Missing Values Heatmap")
+    st.subheader("Improved Missing Values Heatmap")
 
-    fig, ax = plt.subplots(figsize=(12,5))
-    sns.heatmap(df.isnull(), yticklabels=False, cmap="viridis", ax=ax)
+    fig, ax = plt.subplots(figsize=(14,6))
+
+    sns.heatmap(
+        df.isnull(),
+        yticklabels=False,
+        cbar=True,
+        cmap="viridis",
+        ax=ax
+    )
+
+    ax.set_title("Missing Values Distribution", fontsize=16)
+    ax.set_xlabel("Features")
+    ax.set_ylabel("Records")
+
     st.pyplot(fig)
 
-    # Handle missing values
-    st.subheader("Handle Missing Values")
-    if st.button("Fill Missing Values"):
-        df.fillna(df.mode().iloc[0], inplace=True)
-        st.success("Missing values filled using mode")
+    # Missing values count heatmap (extra useful)
+    st.subheader("Missing Values Count")
+
+    missing_data = df.isnull().sum().to_frame(name="Missing Count")
+
+    fig2, ax2 = plt.subplots(figsize=(8,6))
+    sns.heatmap(
+        missing_data,
+        annot=True,
+        fmt="d",
+        cmap="magma",
+        ax=ax2
+    )
+
+    st.pyplot(fig2)
 
 
 # ===============================
 # PAGE 3 — Visualizations
 # ===============================
 elif page == "Visualizations":
-    st.title("📊 Data Visualizations")
+    st.title("Data Visualizations")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        fig, ax = plt.subplots()
+        st.subheader("Loan Approval Distribution")
+        fig, ax = plt.subplots(figsize=(6,4))
         sns.countplot(x="Loan_Status", data=df, ax=ax)
         st.pyplot(fig)
 
     with col2:
-        fig, ax = plt.subplots()
+        st.subheader("Credit History vs Loan Status")
+        fig, ax = plt.subplots(figsize=(6,4))
         sns.countplot(x="Credit_History", hue="Loan_Status", data=df, ax=ax)
         st.pyplot(fig)
 
-    st.subheader("Correlation Heatmap")
+    st.subheader("Feature Correlation")
+
+    # Only numeric columns for correlation
     numeric_df = df.select_dtypes(include=np.number)
 
-    fig, ax = plt.subplots(figsize=(10,5))
-    sns.heatmap(numeric_df.corr(), annot=True, cmap="coolwarm", ax=ax)
+    fig, ax = plt.subplots(figsize=(12,6))
+    sns.heatmap(
+        numeric_df.corr(),
+        annot=True,
+        cmap="coolwarm",
+        fmt=".2f",
+        linewidths=0.5,
+        ax=ax
+    )
+
     st.pyplot(fig)
 
 
@@ -114,7 +136,9 @@ elif page == "Visualizations":
 # PAGE 4 — Prediction
 # ===============================
 elif page == "Prediction":
-    st.title("🤖 Loan Approval Prediction")
+    st.title("Loan Approval Prediction")
+
+    st.write("Enter applicant details:")
 
     Gender = st.selectbox("Gender", ["Male", "Female"])
     Married = st.selectbox("Married", ["Yes", "No"])
@@ -124,11 +148,11 @@ elif page == "Prediction":
     ApplicantIncome = st.number_input("Applicant Income", min_value=0)
     CoapplicantIncome = st.number_input("Coapplicant Income", min_value=0)
     LoanAmount = st.number_input("Loan Amount", min_value=0)
-    Loan_Amount_Term = st.number_input("Loan Term", min_value=1)
+    Loan_Amount_Term = st.number_input("Loan Amount Term", min_value=1)
     Credit_History = st.selectbox("Credit History", [1.0, 0.0])
     Property_Area = st.selectbox("Property Area", ["Urban", "Semiurban", "Rural"])
 
-    if st.button("Predict"):
+    if st.button("Predict Loan Status"):
 
         TotalIncome = ApplicantIncome + CoapplicantIncome
         EMI = LoanAmount / Loan_Amount_Term
@@ -149,23 +173,14 @@ elif page == "Prediction":
             "EMI":[EMI]
         })
 
-        # Encoding
+        # Encoding (same workflow preserved)
         for col in input_data.select_dtypes(include="object").columns:
             input_data[col] = input_data[col].astype("category").cat.codes
 
         prediction = model.predict(input_data)[0]
-        prob = model.predict_proba(input_data)[0][1]
 
         if prediction == 1:
-            st.success(f"✅ Loan Approved (Confidence: {prob:.2f})")
+            st.success("Loan Approved")
         else:
-            st.error(f"❌ Loan Rejected (Confidence: {1-prob:.2f})")
 
-        # Download result
-        input_data["Prediction"] = prediction
-        st.download_button(
-            "Download Result",
-            input_data.to_csv(index=False),
-            "prediction.csv",
-            "text/csv"
-        )
+            st.error("Loan Rejected")
