@@ -202,66 +202,7 @@ elif page == "Prediction":
             st.write("- Improve credit score")
             st.write("- Choose longer loan term")
 
-        # ===============================
-        # WHAT-IF (FINAL FIX 🔥)
-        # ===============================
-        st.subheader("🔄 What-if Analysis")
-
-        # Initialize session values
-        if "new_income" not in st.session_state:
-            st.session_state.new_income = int(TotalIncome)
-
-        if "new_loan" not in st.session_state:
-            st.session_state.new_loan = int(LoanAmount)
-
-        # Sliders with session state
-        new_income = st.slider(
-            "Try Increasing Income",
-            0, 20000,
-            value=st.session_state.new_income,
-            key="new_income"
-            )
-
-        new_loan = st.slider(
-            "Try Reducing Loan Amount",
-            0, 1000,
-            value=st.session_state.new_loan,
-            key="new_loan"
-            )
-
-        new_emi = new_loan / Loan_Amount_Term
-
-        # Create fresh data
-        temp_data = pd.DataFrame({
-        "Gender":[Gender],
-        "Married":[Married],
-        "Dependents":[Dependents],
-        "Education":[Education],
-        "Self_Employed":[Self_Employed],
-        "ApplicantIncome":[new_income - CoapplicantIncome],
-        "CoapplicantIncome":[CoapplicantIncome],
-        "LoanAmount":[new_loan],
-        "Loan_Amount_Term":[Loan_Amount_Term],
-        "Credit_History":[Credit_History],
-        "Property_Area":[Property_Area],
-        "TotalIncome":[new_income],
-        "EMI":[new_emi]
-        })
-
-        # Encode again
-        for col in temp_data.select_dtypes(include="object").columns:
-            temp_data[col] = temp_data[col].astype("category").cat.codes
-
-        temp_data = temp_data[input_data.columns]
-
-        # Predict
-        new_pred = model.predict(temp_data)[0]
-
-        if new_pred == 1:
-            st.success("✅ With these changes → Loan may be APPROVED")
-        else:
-            st.error("❌ Still NOT approved")
-
+       
         # ===============================
         # DOWNLOAD
         # ===============================
